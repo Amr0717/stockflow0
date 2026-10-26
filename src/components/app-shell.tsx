@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
@@ -104,12 +105,10 @@ export function AppShell({
 
   const brand = (
     <Link href="/" className="flex items-center gap-2.5">
-      <span className="flex size-8 items-center justify-center rounded-lg bg-accent text-white">
-        <Boxes aria-hidden className="size-[18px]" />
-      </span>
+      <Image src="/brand/sawalhi-fashion.jpg" alt="" width={64} height={64} className="size-9 shrink-0 rounded-full object-cover ring-1 ring-[#d9b25f]" />
       <span className="min-w-0 leading-tight">
         <span className="block text-[15px] font-semibold text-ink">{t.app.name}</span>
-        <span className="block truncate text-xs text-ink-muted">{businessName || t.app.tagline}</span>
+        <span className="block truncate text-xs text-ink-muted">{businessName && businessName !== t.app.name ? businessName : t.app.tagline}</span>
       </span>
     </Link>
   );

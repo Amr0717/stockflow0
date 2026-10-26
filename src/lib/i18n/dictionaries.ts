@@ -2,7 +2,7 @@
 // (TypeScript fails the build if a translation is missing).
 
 const en = {
-  app: { name: "StockFlow", tagline: "Inventory & invoices" },
+  app: { name: "Azmi Sawalhi & Sons", tagline: "Inventory & invoices" },
   nav: {
     dashboard: "Dashboard",
     products: "Inventory",
@@ -47,14 +47,14 @@ const en = {
     savedOk: "Saved.",
   },
   auth: {
-    title: "Sign in to StockFlow",
+    title: "Sign in",
     subtitle: "Private workspace. Only the owner's account can sign in.",
     email: "Email",
     password: "Password",
     submit: "Sign in",
     submitting: "Signing in…",
     invalid: "Incorrect email or password.",
-    noSignup: "There is no public sign-up. The owner account is created in Supabase.",
+    noSignup: "Accounts are created by the shop owner.",
   },
   dashboard: {
     title: "Dashboard",
@@ -310,7 +310,7 @@ const en = {
 export type Dictionary = typeof en;
 
 const ar: Dictionary = {
-  app: { name: "StockFlow", tagline: "المخزون والفواتير" },
+  app: { name: "عزمي صوالحي وأولاده", tagline: "المخزون والفواتير" },
   nav: {
     dashboard: "لوحة التحكم",
     products: "المخزون",
@@ -355,14 +355,14 @@ const ar: Dictionary = {
     savedOk: "تم الحفظ.",
   },
   auth: {
-    title: "تسجيل الدخول إلى StockFlow",
+    title: "تسجيل الدخول",
     subtitle: "مساحة عمل خاصة. يمكن لحساب المالك فقط تسجيل الدخول.",
     email: "البريد الإلكتروني",
     password: "كلمة المرور",
     submit: "دخول",
     submitting: "جارٍ الدخول…",
     invalid: "البريد الإلكتروني أو كلمة المرور غير صحيحة.",
-    noSignup: "لا يوجد تسجيل عام. يتم إنشاء حساب المالك من لوحة Supabase.",
+    noSignup: "الحسابات يُنشئها صاحب المحل فقط.",
   },
   dashboard: {
     title: "لوحة التحكم",

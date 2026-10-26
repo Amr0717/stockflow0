@@ -11,7 +11,7 @@ const plexArabic = IBM_Plex_Sans_Arabic({
 });
 
 export const metadata: Metadata = {
-  title: { default: "StockFlow", template: "%s · StockFlow" },
+  title: { default: "عزمي صوالحي وأولاده", template: "%s · عزمي صوالحي وأولاده" },
   description: "Private inventory and invoice workspace",
   robots: { index: false, follow: false },
 };
@@ -19,7 +19,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#0f766e",
+  themeColor: "#3b2416",
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
