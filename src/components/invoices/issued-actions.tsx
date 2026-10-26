@@ -15,14 +15,11 @@ export function IssuedInvoiceActions({
   invoiceId,
   invoiceNumber,
   canCancel,
-  shareText,
   t,
 }: {
   invoiceId: string;
   invoiceNumber: string;
   canCancel: boolean;
-  /** Text summary sent with the invoice on WhatsApp. */
-  shareText: string;
   t: Dictionary;
 }) {
   const router = useRouter();
@@ -59,9 +56,8 @@ export function IssuedInvoiceActions({
         <WhatsAppButton
           documentId="invoice-document"
           fileName={`${invoiceNumber || "invoice"}.png`}
-          shareText={shareText}
           t={t}
-          onInfo={(text) => setResult({ ok: true, text })}
+          onInfo={setResult}
         />
         {canCancel && (
           <Button variant="secondary" onClick={() => setOpen(true)} className="text-danger">

@@ -6,37 +6,34 @@ import { Button } from "@/components/ui/button";
 import type { Dictionary } from "@/lib/i18n/dictionaries";
 
 /**
- * Sends the invoice to WhatsApp.
- *  - Phones/tablets: shares a PNG of the invoice (plus a text summary) through
- *    the system share sheet, where WhatsApp is one tap away.
- *  - Computers: opens WhatsApp with the text summary and downloads the PNG so
- *    it can be attached in the chat.
- * The image is prepared in the background when the page opens, because share
- * sheets only open straight after a click.
+ * Sends a picture of the invoice to WhatsApp (the picture only, no text).
+ *  - Phones/tablets: the system share sheet with the PNG, where WhatsApp is
+ *    one tap away.
+ *  - Computers: copies the PNG to the clipboard (or downloads it if copying
+ *    is not allowed) and opens WhatsApp Web, ready to paste with Ctrl+V.
+ * The picture is prepared when the page opens, because share sheets only
+ * open straight after a click.
  */
 export function WhatsAppButton({
   documentId,
   fileName,
-  shareText,
   t,
   onInfo,
 }: {
   documentId: string;
   fileName: string;
-  shareText: string;
   t: Dictionary;
-  onInfo: (text: string) => void;
+  onInfo: (result: { ok: boolean; text: string }) => void;
 }) {
-  const image = useRef<File | null>(null);
+  const image = useRef<Promise<File | null> | null>(null);
   const [ready, setReady] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
+  const render = (): Promise<File | null> => {
+    image.current ??= (async () => {
       try {
         await document.fonts.ready;
         const node = document.getElementById(documentId);
-        if (!node) return;
+        if (!node) return null;
         const { toBlob } = await import("html-to-image");
         const blob = await toBlob(node, {
           pixelRatio: 2,
@@ -45,45 +42,66 @@ export function WhatsAppButton({
           // The on-screen centring margin would otherwise shift the picture sideways.
           style: { margin: "0" },
         });
-        if (blob && !cancelled) image.current = new File([blob], fileName, { type: "image/png" });
+        return blob ? new File([blob], fileName, { type: "image/png" }) : null;
       } catch (err) {
         console.error("Could not prepare the invoice image", err);
-      } finally {
-        if (!cancelled) setReady(true);
+        image.current = null; // allow a retry on click
+        return null;
       }
     })();
+    return image.current;
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+    render().then(() => {
+      if (!cancelled) setReady(true);
+    });
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [documentId, fileName]);
 
-  function send() {
-    const file = image.current;
+  async function send() {
     const mobile = window.matchMedia("(pointer: coarse)").matches;
-    if (file && mobile && navigator.canShare?.({ files: [file] })) {
-      navigator.share({ files: [file], text: shareText }).catch((err: unknown) => {
-        // AbortError = the owner closed the share sheet; nothing to do.
-        if ((err as Error)?.name !== "AbortError") openWhatsApp();
-      });
+    // Open the tab inside the click, before any await, so it is not blocked.
+    if (!mobile) window.open("https://web.whatsapp.com/", "_blank", "noopener,noreferrer");
+
+    const file = await render();
+    if (!file) {
+      onInfo({ ok: false, text: t.errors.unknown });
       return;
     }
-    openWhatsApp();
-    if (file) {
-      const url = URL.createObjectURL(file);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = file.name;
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(url), 10_000);
-      onInfo(t.invoices.whatsappDownloaded);
+
+    if (mobile && navigator.canShare?.({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file] });
+      } catch (err) {
+        // AbortError = the share sheet was closed; anything else: save the picture instead.
+        if ((err as Error)?.name !== "AbortError") download(file);
+      }
+      return;
+    }
+
+    try {
+      await navigator.clipboard.write([new ClipboardItem({ "image/png": file })]);
+      onInfo({ ok: true, text: t.invoices.whatsappCopied });
+    } catch {
+      download(file);
+      onInfo({ ok: true, text: t.invoices.whatsappDownloaded });
     }
   }
 
-  function openWhatsApp() {
-    window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, "_blank", "noopener,noreferrer");
+  function download(file: File) {
+    const url = URL.createObjectURL(file);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = file.name;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 10_000);
   }
 
-  // Never blocked: until the picture is ready, a click sends the text summary only.
   return (
     <Button onClick={send} className="bg-[#1f9d55] hover:bg-[#178246]" aria-busy={!ready}>
       <MessageCircle aria-hidden className="size-4" />

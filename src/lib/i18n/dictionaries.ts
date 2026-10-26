@@ -224,9 +224,8 @@ const en = {
     itemsCount: "Items",
     totalQuantity: "Total pieces",
     whatsapp: "Send on WhatsApp",
-    whatsappDownloaded: "The invoice image was downloaded. Attach it in the WhatsApp chat that just opened.",
-    whatsappHeader: "Invoice {number}",
-    whatsappLine: "{name} ({sku}) × {quantity} = {total}",
+    whatsappCopied: "Invoice picture copied. In the WhatsApp chat that opened, press Ctrl+V to paste it.",
+    whatsappDownloaded: "Invoice picture downloaded. Attach it in the WhatsApp chat that opened.",
   },
   movements: {
     title: "Stock history",
@@ -533,9 +532,8 @@ const ar: Dictionary = {
     itemsCount: "عدد الأصناف",
     totalQuantity: "مجموع القطع",
     whatsapp: "إرسال واتساب",
+    whatsappCopied: "تم نسخ صورة الفاتورة. في محادثة واتساب التي فُتحت اضغط Ctrl+V للصقها.",
     whatsappDownloaded: "تم تنزيل صورة الفاتورة. أرفقها في محادثة واتساب التي فُتحت.",
-    whatsappHeader: "فاتورة رقم {number}",
-    whatsappLine: "{name} ({sku}) × {quantity} = {total}",
   },
   movements: {
     title: "سجل المخزون",

@@ -11,11 +11,10 @@ import { ButtonLink } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
 import { getSettings, requireUser } from "@/lib/data";
-import { formatDate, formatDateTime } from "@/lib/dates";
+import { formatDateTime } from "@/lib/dates";
 import { fill } from "@/lib/i18n/dictionaries";
 import { getI18n } from "@/lib/i18n/server";
-import { buildInvoiceShareText } from "@/lib/invoice-share";
-import { formatMoney, formatNumber, minorToInput } from "@/lib/numbers";
+import { minorToInput } from "@/lib/numbers";
 import type { Invoice, InvoiceItem, StockMovement } from "@/lib/types";
 
 export const metadata: Metadata = { title: "Invoice" };
@@ -77,23 +76,6 @@ export default async function InvoicePage({ params, searchParams }: PageProps<"/
     .eq("invoice_id", id)
     .order("created_at");
   const moves = (movesData ?? []) as unknown as StockMovement[];
-  const money = (minor: number) => formatMoney(minor, invoice.currency_code, locale);
-  const shareText = buildInvoiceShareText({
-    t,
-    businessName: settings.business_name || t.app.name,
-    phone: settings.business_phone,
-    invoiceNumber: invoice.invoice_number ?? "",
-    date: formatDate(invoice.issued_at ?? invoice.created_at, locale, settings.timezone),
-    customer: invoice.customer_name,
-    lines: items.map((item) => ({
-      name: item.product_name,
-      sku: item.sku,
-      quantity: formatNumber(item.quantity, locale),
-      total: money(item.line_total_minor),
-    })),
-    total: money(invoice.total_minor),
-    footer: settings.invoice_footer || t.invoices.thankYou,
-  });
 
   return (
     <>
@@ -121,7 +103,6 @@ export default async function InvoicePage({ params, searchParams }: PageProps<"/
             invoiceId={invoice.id}
             invoiceNumber={invoice.invoice_number ?? ""}
             canCancel={invoice.status === "issued"}
-            shareText={shareText}
             t={t}
           />
         </div>
