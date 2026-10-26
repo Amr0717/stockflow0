@@ -9,16 +9,20 @@ import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/field";
 import { fill, type Dictionary } from "@/lib/i18n/dictionaries";
+import { WhatsAppButton } from "./whatsapp-button";
 
 export function IssuedInvoiceActions({
   invoiceId,
   invoiceNumber,
   canCancel,
+  shareText,
   t,
 }: {
   invoiceId: string;
   invoiceNumber: string;
   canCancel: boolean;
+  /** Text summary sent with the invoice on WhatsApp. */
+  shareText: string;
   t: Dictionary;
 }) {
   const router = useRouter();
@@ -52,6 +56,13 @@ export function IssuedInvoiceActions({
           <Printer aria-hidden className="size-4" />
           {t.invoices.print}
         </Button>
+        <WhatsAppButton
+          documentId="invoice-document"
+          fileName={`${invoiceNumber || "invoice"}.png`}
+          shareText={shareText}
+          t={t}
+          onInfo={(text) => setResult({ ok: true, text })}
+        />
         {canCancel && (
           <Button variant="secondary" onClick={() => setOpen(true)} className="text-danger">
             <Ban aria-hidden className="size-4" />
