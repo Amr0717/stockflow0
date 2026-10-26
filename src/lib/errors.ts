@@ -22,6 +22,9 @@ const KNOWN = new Set([
   "invalid_pin",
   "pin_not_set",
   "invalid_pin_format",
+  "invalid_row",
+  "too_many_rows",
+  "invalid_input",
 ]);
 
 /**

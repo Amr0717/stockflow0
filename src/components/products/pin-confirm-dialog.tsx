@@ -4,7 +4,7 @@ import { useState, useTransition, type ReactNode } from "react";
 import type { FormState } from "@/app/(app)/products/actions";
 import { Alert } from "@/components/ui/alert";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { Field, Input } from "@/components/ui/field";
+import { Field, PinInput } from "@/components/ui/field";
 import type { Dictionary } from "@/lib/i18n/dictionaries";
 
 /**
@@ -62,13 +62,8 @@ export function PinConfirmDialog({
       {children}
       {error && <Alert tone="danger">{error}</Alert>}
       <Field label={t.products.pin} htmlFor="manage-pin">
-        <Input
+        <PinInput
           id="manage-pin"
-          type="password"
-          dir="ltr"
-          inputMode="numeric"
-          autoComplete="off"
-          maxLength={12}
           autoFocus
           value={pin}
           onChange={(e) => setPin(e.target.value)}

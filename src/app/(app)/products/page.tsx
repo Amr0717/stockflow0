@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { Package, Pencil, Plus, Search } from "lucide-react";
+import { ListPlus, Package, Pencil, Plus, Search } from "lucide-react";
 import { Pagination } from "@/components/pagination";
 import { DeleteProductButton } from "@/components/products/delete-product-button";
 import { Alert } from "@/components/ui/alert";
@@ -64,10 +64,16 @@ export default async function ProductsPage({ searchParams }: PageProps<"/product
       <PageHeader
         title={t.products.title}
         actions={
-          <ButtonLink href="/products/new">
-            <Plus aria-hidden className="size-4" />
-            {t.products.add}
-          </ButtonLink>
+          <div className="flex flex-wrap gap-2">
+            <ButtonLink href="/products/import" variant="secondary">
+              <ListPlus aria-hidden className="size-4" />
+              {t.products.bulkAdd}
+            </ButtonLink>
+            <ButtonLink href="/products/new">
+              <Plus aria-hidden className="size-4" />
+              {t.products.add}
+            </ButtonLink>
+          </div>
         }
       />
 

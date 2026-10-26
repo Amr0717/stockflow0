@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import { ListPlus } from "lucide-react";
 import { ProductForm } from "@/components/products/product-form";
+import { ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
 import { getSettings, requireUser } from "@/lib/data";
@@ -14,7 +16,15 @@ export default async function NewProductPage() {
   const [{ t }, settings] = await Promise.all([getI18n(), getSettings()]);
   return (
     <>
-      <PageHeader title={t.products.newTitle} />
+      <PageHeader
+        title={t.products.newTitle}
+        actions={
+          <ButtonLink href="/products/import" variant="secondary">
+            <ListPlus aria-hidden className="size-4" />
+            {t.products.bulkAdd}
+          </ButtonLink>
+        }
+      />
       <Card className="max-w-3xl p-5 sm:p-6">
         <ProductForm
           action={createProductAction}

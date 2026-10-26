@@ -6,6 +6,7 @@ import { requireUser } from "@/lib/data";
 import { translateDbError } from "@/lib/errors";
 import { fill } from "@/lib/i18n/dictionaries";
 import { getI18n } from "@/lib/i18n/server";
+import { MAX_IMPORT_ROWS } from "@/lib/import";
 import { parseMoneyToMinor, parseNonNegativeInt, parsePositiveInt } from "@/lib/numbers";
 
 export type FormState = {
@@ -15,6 +16,8 @@ export type FormState = {
   values?: Record<string, string>;
   /** Set by deleteProductAction: what the database did with the product. */
   removed?: "deleted" | "archived";
+  /** Set by createProductAction when the owner stays on the form for the next product. */
+  createdId?: string;
 };
 
 function text(formData: FormData, name: string) {
@@ -78,7 +81,53 @@ export async function createProductAction(_prev: FormState, formData: FormData):
     };
   }
   revalidatePath("/products");
-  redirect(`/products/${data}?created=1`);
+  if (text(formData, "after") === "open") redirect(`/products/${data}?created=1`);
+  // Default: stay on an empty form for the next product (keeps the alert threshold).
+  return {
+    ok: true,
+    createdId: data as string,
+    message: fill(f.t.products.created_next, { sku: f.values.sku }),
+    values: { sku: "", name: "", description: "", price: "", cost: "", threshold: f.values.threshold, initial_quantity: "0" },
+  };
+}
+
+export type ImportItem = {
+  sku: string;
+  name: string;
+  unit_price_minor: number;
+  quantity: number;
+  cost_minor: number | null;
+};
+
+/** Creates many products in one all-or-nothing database call. */
+export async function importProductsAction(items: ImportItem[]): Promise<FormState> {
+  const { supabase } = await requireUser();
+  const { t } = await getI18n();
+  if (!Array.isArray(items) || items.length === 0) return { message: t.errors.invalid_input };
+  if (items.length > MAX_IMPORT_ROWS) return { message: fill(t.import.tooMany, { max: MAX_IMPORT_ROWS }) };
+
+  const payload = items.map((i) => ({
+    sku: String(i.sku ?? "").trim(),
+    name: String(i.name ?? "").trim(),
+    unit_price_minor: i.unit_price_minor,
+    quantity: i.quantity,
+    cost_minor: i.cost_minor ?? null,
+  }));
+  const { data, error } = await supabase.rpc("create_products_bulk", { p_items: payload });
+  if (error) {
+    const message = translateDbError(error, t);
+    let detail: { line?: number; sku?: string } = {};
+    try {
+      detail = error.details ? JSON.parse(error.details) : {};
+    } catch {
+      detail = {};
+    }
+    if (!detail.line) return { message };
+    return { message: fill(t.import.lineError, { line: detail.line, sku: detail.sku ?? "", message }) };
+  }
+  revalidatePath("/products");
+  revalidatePath("/");
+  return { ok: true, message: fill(t.import.done, { count: Number(data) }) };
 }
 
 export async function updateProductAction(productId: string, _prev: FormState, formData: FormData): Promise<FormState> {

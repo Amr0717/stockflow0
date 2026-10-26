@@ -1,10 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
 import type { FormState } from "@/app/(app)/products/actions";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Field, Input, Textarea } from "@/components/ui/field";
+import { Field, Input, PinInput, Textarea } from "@/components/ui/field";
 import type { Dictionary } from "@/lib/i18n/dictionaries";
 
 type Values = {
@@ -34,11 +35,21 @@ export function ProductForm({
   const v = { ...initial, ...state.values };
   const err = state.fieldErrors ?? {};
   // Re-mount inputs after each server response so defaultValue reflects it.
-  const formKey = JSON.stringify(state.values ?? initial);
+  // createdId makes every "Add & next" clear the form, even twice in a row.
+  const formKey = JSON.stringify(state.values ?? initial) + (state.createdId ?? "");
 
   return (
     <form action={formAction} className="space-y-5" noValidate key={formKey}>
-      {state.message && <Alert tone={state.ok ? "success" : "danger"}>{state.message}</Alert>}
+      {state.message && (
+        <Alert tone={state.ok ? "success" : "danger"}>
+          {state.message}
+          {state.createdId && (
+            <Link href={`/products/${state.createdId}`} className="ms-2 font-medium underline">
+              {t.products.viewProduct}
+            </Link>
+          )}
+        </Alert>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label={t.products.sku} htmlFor="sku" hint={t.products.skuHint} error={err.sku}>
@@ -51,6 +62,8 @@ export function ProductForm({
             autoComplete="off"
             spellCheck={false}
             defaultValue={v.sku}
+            // Ready for the next product straight after "Add & next".
+            autoFocus={mode === "create" && Boolean(state.createdId)}
             aria-invalid={Boolean(err.sku)}
             className="font-medium"
           />
@@ -112,26 +125,27 @@ export function ProductForm({
 
       {mode === "edit" && (
         <Field label={t.products.pin} htmlFor="pin" hint={t.products.pinHint} error={err.pin}>
-          <Input
-            id="pin"
-            name="pin"
-            type="password"
-            dir="ltr"
-            inputMode="numeric"
-            autoComplete="off"
-            required
-            maxLength={12}
-            aria-invalid={Boolean(err.pin)}
-            className="sm:max-w-48"
-          />
+          <PinInput id="pin" name="pin" required aria-invalid={Boolean(err.pin)} className="sm:max-w-48" />
         </Field>
       )}
 
-      <div className="flex justify-end">
-        <Button type="submit" disabled={pending}>
-          {pending ? t.common.saving : mode === "create" ? t.products.add : t.common.save}
-        </Button>
-      </div>
+      {mode === "create" ? (
+        // The first submit button is the one Enter presses: "Add & next".
+        <div className="flex flex-row-reverse flex-wrap justify-start gap-2">
+          <Button type="submit" name="after" value="next" disabled={pending}>
+            {pending ? t.common.saving : t.products.addNext}
+          </Button>
+          <Button type="submit" name="after" value="open" variant="secondary" disabled={pending}>
+            {t.products.addOpen}
+          </Button>
+        </div>
+      ) : (
+        <div className="flex justify-end">
+          <Button type="submit" disabled={pending}>
+            {pending ? t.common.saving : t.common.save}
+          </Button>
+        </div>
+      )}
     </form>
   );
 }

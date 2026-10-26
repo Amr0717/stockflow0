@@ -45,6 +45,27 @@ export function Input({ className, ...props }: ComponentProps<"input">) {
   return <input className={cn(inputClass, className)} {...props} />;
 }
 
+/**
+ * Masked digits for the management PIN. Deliberately not type="password":
+ * browsers would then offer to save it as a website password on every save.
+ */
+export function PinInput({ className, ...props }: ComponentProps<"input">) {
+  return (
+    <input
+      type="text"
+      dir="ltr"
+      inputMode="numeric"
+      autoComplete="off"
+      spellCheck={false}
+      maxLength={12}
+      data-1p-ignore
+      data-lpignore="true"
+      className={cn(inputClass, "[-webkit-text-security:disc]", className)}
+      {...props}
+    />
+  );
+}
+
 export function Textarea({ className, ...props }: ComponentProps<"textarea">) {
   return <textarea className={cn(inputClass, "h-auto min-h-20 py-2", className)} {...props} />;
 }
