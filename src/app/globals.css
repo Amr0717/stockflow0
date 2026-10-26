@@ -1,0 +1,93 @@
+@import "tailwindcss";
+
+/* StockFlow design tokens: calm neutral surfaces + one teal accent. */
+@theme {
+  --font-sans: var(--font-plex-arabic), "IBM Plex Sans Arabic", "Segoe UI", Tahoma, "Noto Sans Arabic", Arial, sans-serif;
+
+  --color-canvas: #f6f7f8;
+  --color-surface: #ffffff;
+  --color-subtle: #f1f3f5;
+  --color-line: #e3e6ea;
+  --color-line-strong: #cfd4da;
+  --color-ink: #16191d;
+  --color-ink-soft: #4b5563;
+  --color-ink-muted: #6b7280;
+
+  --color-accent: #0f766e;
+  --color-accent-hover: #115e59;
+  --color-accent-soft: #e6f4f2;
+  --color-accent-ink: #0b544f;
+
+  --color-success: #15803d;
+  --color-success-soft: #e8f6ec;
+  --color-warning: #a16207;
+  --color-warning-soft: #fdf5e1;
+  --color-danger: #b42318;
+  --color-danger-hover: #912018;
+  --color-danger-soft: #fdecea;
+
+  --radius-card: 0.875rem;
+  --shadow-card: 0 1px 2px rgb(16 24 40 / 0.04), 0 1px 3px rgb(16 24 40 / 0.06);
+}
+
+html {
+  color-scheme: light;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-feature-settings: "tnum" 1;
+}
+
+/* Visible keyboard focus everywhere. */
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* Numbers, SKUs and prices always read left-to-right, even inside Arabic text. */
+.ltr-value {
+  direction: ltr;
+  unicode-bidi: isolate;
+  font-variant-numeric: tabular-nums;
+}
+
+/* -------- Print (A4 invoice) -------- */
+@page {
+  size: A4;
+  margin: 14mm 12mm;
+}
+
+@media print {
+  html,
+  body {
+    background: #fff !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-area {
+    box-shadow: none !important;
+    border: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: none !important;
+  }
+  .print-shell {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  table {
+    page-break-inside: auto;
+  }
+  tr {
+    page-break-inside: avoid;
+  }
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
