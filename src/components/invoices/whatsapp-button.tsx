@@ -7,12 +7,17 @@ import type { Dictionary } from "@/lib/i18n/dictionaries";
 
 /**
  * Sends a picture of the invoice to WhatsApp (the picture only, no text).
- *  - Phones/tablets: the system share sheet with the PNG, where WhatsApp is
- *    one tap away.
- *  - Computers: copies the PNG to the clipboard (or downloads it if copying
- *    is not allowed) and opens WhatsApp Web, ready to paste with Ctrl+V.
- * The picture is prepared when the page opens, because share sheets only
- * open straight after a click.
+ *
+ * Phones and computers both use the system share menu (Web Share API): on
+ * Windows that is the Windows "Share" window, where the WhatsApp app is listed;
+ * choosing it opens the app with the picture attached and lets the owner pick
+ * the chats to send it to.
+ *
+ * Browsers without file sharing: the picture is copied (or downloaded) and the
+ * WhatsApp app is opened, ready to paste with Ctrl+V.
+ *
+ * The picture is prepared when the page opens, because share menus only open
+ * straight after a click.
  */
 export function WhatsAppButton({
   documentId,
@@ -23,13 +28,14 @@ export function WhatsAppButton({
   documentId: string;
   fileName: string;
   t: Dictionary;
-  onInfo: (result: { ok: boolean; text: string }) => void;
+  onInfo: (result: { ok: boolean; text: string } | null) => void;
 }) {
-  const image = useRef<Promise<File | null> | null>(null);
+  const prepared = useRef<File | null>(null);
+  const pending = useRef<Promise<File | null> | null>(null);
   const [ready, setReady] = useState(false);
 
   const render = (): Promise<File | null> => {
-    image.current ??= (async () => {
+    pending.current ??= (async () => {
       try {
         await document.fonts.ready;
         const node = document.getElementById(documentId);
@@ -42,14 +48,15 @@ export function WhatsAppButton({
           // The on-screen centring margin would otherwise shift the picture sideways.
           style: { margin: "0" },
         });
-        return blob ? new File([blob], fileName, { type: "image/png" }) : null;
+        prepared.current = blob ? new File([blob], fileName, { type: "image/png" }) : null;
+        return prepared.current;
       } catch (err) {
         console.error("Could not prepare the invoice image", err);
-        image.current = null; // allow a retry on click
+        pending.current = null; // allow a retry on click
         return null;
       }
     })();
-    return image.current;
+    return pending.current;
   };
 
   useEffect(() => {
@@ -64,26 +71,26 @@ export function WhatsAppButton({
   }, [documentId, fileName]);
 
   async function send() {
-    const mobile = window.matchMedia("(pointer: coarse)").matches;
-    // Open the tab inside the click, before any await, so it is not blocked.
-    if (!mobile) window.open("https://web.whatsapp.com/", "_blank", "noopener,noreferrer");
-
-    const file = await render();
+    onInfo(null);
+    // Use the prepared picture without awaiting, so the share menu still
+    // counts as "right after the click".
+    const file = prepared.current ?? (await render());
     if (!file) {
       onInfo({ ok: false, text: t.errors.unknown });
       return;
     }
 
-    if (mobile && navigator.canShare?.({ files: [file] })) {
+    if (navigator.canShare?.({ files: [file] })) {
       try {
         await navigator.share({ files: [file] });
+        return;
       } catch (err) {
-        // AbortError = the share sheet was closed; anything else: save the picture instead.
-        if ((err as Error)?.name !== "AbortError") download(file);
+        // AbortError = the share menu was closed on purpose.
+        if ((err as Error)?.name === "AbortError") return;
       }
-      return;
     }
 
+    // No file sharing in this browser: copy (or download) and open the app.
     try {
       await navigator.clipboard.write([new ClipboardItem({ "image/png": file })]);
       onInfo({ ok: true, text: t.invoices.whatsappCopied });
@@ -91,6 +98,7 @@ export function WhatsAppButton({
       download(file);
       onInfo({ ok: true, text: t.invoices.whatsappDownloaded });
     }
+    window.location.assign("whatsapp://send");
   }
 
   function download(file: File) {
