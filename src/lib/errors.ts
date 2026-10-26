@@ -19,6 +19,9 @@ const KNOWN = new Set([
   "total_mismatch",
   "reason_required",
   "invalid_movement_type",
+  "invalid_pin",
+  "pin_not_set",
+  "invalid_pin_format",
 ]);
 
 /**

@@ -13,6 +13,8 @@ export type FormState = {
   message?: string;
   fieldErrors?: Record<string, string>;
   values?: Record<string, string>;
+  /** Set by deleteProductAction: what the database did with the product. */
+  removed?: "deleted" | "archived";
 };
 
 function text(formData: FormData, name: string) {
@@ -82,6 +84,9 @@ export async function createProductAction(_prev: FormState, formData: FormData):
 export async function updateProductAction(productId: string, _prev: FormState, formData: FormData): Promise<FormState> {
   const { supabase } = await requireUser();
   const f = await readProductForm(formData, false);
+  // The PIN is checked by the database; never echoed back in `values`.
+  const pin = text(formData, "pin");
+  if (!pin) f.fieldErrors.pin = f.t.errors.pin_required;
   if (Object.keys(f.fieldErrors).length) return { fieldErrors: f.fieldErrors, values: f.values };
 
   const { error } = await supabase.rpc("update_product", {
@@ -92,13 +97,15 @@ export async function updateProductAction(productId: string, _prev: FormState, f
     p_unit_price_minor: f.price,
     p_cost_minor: f.cost,
     p_low_stock_threshold: f.threshold,
+    p_pin: pin,
   });
   if (error) {
     const message = translateDbError(error, f.t);
     return {
       message,
       values: f.values,
-      fieldErrors: error.message === "duplicate_sku" ? { sku: message } : undefined,
+      fieldErrors:
+        error.message === "duplicate_sku" ? { sku: message } : error.message === "invalid_pin" ? { pin: message } : undefined,
     };
   }
   revalidatePath("/products");
@@ -106,14 +113,37 @@ export async function updateProductAction(productId: string, _prev: FormState, f
   return { ok: true, message: f.t.products.updated_ok, values: f.values };
 }
 
-export async function setArchivedAction(productId: string, archived: boolean): Promise<FormState> {
+export async function setArchivedAction(productId: string, archived: boolean, pin: string): Promise<FormState> {
   const { supabase } = await requireUser();
   const { t } = await getI18n();
-  const { error } = await supabase.rpc("set_product_archived", { p_product_id: productId, p_archived: archived });
+  if (!pin.trim()) return { message: t.errors.pin_required };
+  const { error } = await supabase.rpc("set_product_archived", {
+    p_product_id: productId,
+    p_archived: archived,
+    p_pin: pin.trim(),
+  });
   if (error) return { message: translateDbError(error, t) };
   revalidatePath("/products");
   revalidatePath(`/products/${productId}`);
   return { ok: true, message: archived ? t.products.archived_ok : t.products.restored_ok };
+}
+
+/** Deletes the product, or archives it when invoices/movements refer to it. */
+export async function deleteProductAction(productId: string, pin: string): Promise<FormState> {
+  const { supabase } = await requireUser();
+  const { t } = await getI18n();
+  if (!pin.trim()) return { message: t.errors.pin_required };
+  const { data, error } = await supabase.rpc("delete_product", { p_product_id: productId, p_pin: pin.trim() });
+  if (error) return { message: translateDbError(error, t) };
+  revalidatePath("/products");
+  revalidatePath(`/products/${productId}`);
+  revalidatePath("/");
+  const removed = data === "deleted" ? "deleted" : "archived";
+  return {
+    ok: true,
+    removed,
+    message: removed === "deleted" ? t.products.deleted_ok : t.products.deleted_archived_ok,
+  };
 }
 
 export async function adjustStockAction(productId: string, _prev: FormState, formData: FormData): Promise<FormState> {

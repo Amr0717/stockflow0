@@ -44,3 +44,27 @@ export async function saveSettingsAction(_prev: SettingsState, formData: FormDat
   // Confirm in the newly chosen language.
   return { ok: true, message: dictionaries[locale as "ar" | "en"].settings.saved };
 }
+
+export type PinState = { ok?: boolean; message?: string; fieldErrors?: Record<string, string> };
+
+/** Sets the management PIN, or changes it (the database checks the current one). */
+export async function setPinAction(_prev: PinState, formData: FormData): Promise<PinState> {
+  const { supabase } = await requireUser();
+  const { t } = await getI18n();
+  const get = (k: string) => String(formData.get(k) ?? "").trim();
+  const current = get("current_pin");
+  const next = get("new_pin");
+
+  const fieldErrors: Record<string, string> = {};
+  if (!/^[0-9]{4,12}$/.test(next)) fieldErrors.new_pin = t.errors.invalid_pin_format;
+  else if (next !== get("confirm_pin")) fieldErrors.confirm_pin = t.errors.pin_mismatch;
+  if (Object.keys(fieldErrors).length) return { fieldErrors };
+
+  const { error } = await supabase.rpc("set_manage_pin", { p_current_pin: current || null, p_new_pin: next });
+  if (error) {
+    const message = translateDbError(error, t);
+    return { message, fieldErrors: error.message === "invalid_pin" ? { current_pin: message } : undefined };
+  }
+  revalidatePath("/settings");
+  return { ok: true, message: t.settings.pinSaved };
+}

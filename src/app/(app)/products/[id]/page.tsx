@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { History } from "lucide-react";
 import { ArchiveButton } from "@/components/products/archive-button";
+import { DeleteProductButton } from "@/components/products/delete-product-button";
 import { ProductForm } from "@/components/products/product-form";
 import { StockAdjustForm } from "@/components/products/stock-adjust-form";
 import { BeforeAfter, Delta, MovementTypeBadge, StockLevel, movementReason } from "@/components/status";
@@ -56,13 +57,18 @@ export default async function ProductPage({ params, searchParams }: PageProps<"/
           </span>
         }
         description={product.name}
-        actions={<ArchiveButton productId={product.id} archived={Boolean(product.archived_at)} t={t} />}
+        actions={
+          <div className="flex flex-wrap gap-2">
+            <ArchiveButton productId={product.id} archived={Boolean(product.archived_at)} t={t} />
+            {!product.archived_at && <DeleteProductButton productId={product.id} t={t} />}
+          </div>
+        }
       />
 
       {sp.created === "1" && <Alert tone="success" className="mb-4">{t.products.created_ok}</Alert>}
 
       <div className="grid gap-6 lg:grid-cols-5">
-        <div className="space-y-6 lg:col-span-3">
+        <div id="edit" className="scroll-mt-20 space-y-6 lg:col-span-3">
           <Card>
             <CardHeader title={t.products.editTitle} />
             <div className="p-5">

@@ -1,7 +1,9 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { Package, Plus, Search } from "lucide-react";
+import { Package, Pencil, Plus, Search } from "lucide-react";
 import { Pagination } from "@/components/pagination";
+import { DeleteProductButton } from "@/components/products/delete-product-button";
+import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -13,6 +15,7 @@ import { getSettings, requireUser } from "@/lib/data";
 import { formatDateTime } from "@/lib/dates";
 import { getI18n } from "@/lib/i18n/server";
 import { formatMoney } from "@/lib/numbers";
+import type { Dictionary } from "@/lib/i18n/dictionaries";
 import type { Product } from "@/lib/types";
 
 export const metadata: Metadata = { title: "Inventory" };
@@ -37,6 +40,7 @@ export default async function ProductsPage({ searchParams }: PageProps<"/product
   const dir = one(sp.dir) === "desc" ? "desc" : "asc";
   const showArchived = one(sp.archived) === "1";
   const page = Math.max(1, Number.parseInt(one(sp.page), 10) || 1);
+  const removed = one(sp.removed);
 
   const { supabase } = await requireUser();
   const [{ t, locale }, settings] = await Promise.all([getI18n(), getSettings()]);
@@ -66,6 +70,12 @@ export default async function ProductsPage({ searchParams }: PageProps<"/product
           </ButtonLink>
         }
       />
+
+      {(removed === "deleted" || removed === "archived") && (
+        <Alert tone="success" className="mb-4">
+          {removed === "deleted" ? t.products.deleted_ok : t.products.deleted_archived_ok}
+        </Alert>
+      )}
 
       <Card>
         <form className="flex flex-wrap items-end gap-3 border-b border-line p-4" role="search">
@@ -120,7 +130,8 @@ export default async function ProductsPage({ searchParams }: PageProps<"/product
                     <th scope="col" className="px-3 py-2.5 text-start font-medium">{t.products.name}</th>
                     <th scope="col" className="px-3 py-2.5 text-end font-medium">{t.products.quantity}</th>
                     <th scope="col" className="px-3 py-2.5 text-end font-medium">{t.products.price}</th>
-                    <th scope="col" className="px-5 py-2.5 text-start font-medium">{t.products.updated}</th>
+                    <th scope="col" className="px-3 py-2.5 text-start font-medium">{t.products.updated}</th>
+                    <th scope="col" className="px-5 py-2.5 text-end font-medium">{t.common.actions}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-line">
@@ -139,7 +150,10 @@ export default async function ProductsPage({ searchParams }: PageProps<"/product
                         <StockLevel quantity={p.quantity_on_hand} threshold={p.low_stock_threshold} t={t} locale={locale} />
                       </td>
                       <td className="ltr-value px-3 py-3 text-end">{formatMoney(p.unit_price_minor, settings.currency_code, locale)}</td>
-                      <td className="px-5 py-3 text-xs text-ink-muted">{formatDateTime(p.updated_at, locale, settings.timezone)}</td>
+                      <td className="px-3 py-3 text-xs text-ink-muted">{formatDateTime(p.updated_at, locale, settings.timezone)}</td>
+                      <td className="px-5 py-2">
+                        <RowActions productId={p.id} archived={Boolean(p.archived_at)} t={t} />
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -149,8 +163,8 @@ export default async function ProductsPage({ searchParams }: PageProps<"/product
             {/* Mobile list */}
             <ul className="divide-y divide-line md:hidden">
               {products.map((p) => (
-                <li key={p.id}>
-                  <Link href={`/products/${p.id}`} className="flex items-center justify-between gap-3 px-4 py-3 active:bg-subtle">
+                <li key={p.id} className="pb-2">
+                  <Link href={`/products/${p.id}`} className="flex items-center justify-between gap-3 px-4 pt-3 pb-1 active:bg-subtle">
                     <div className="min-w-0">
                       <p className="ltr-value truncate font-semibold text-accent-ink">{p.sku}</p>
                       <p className="truncate text-sm text-ink-soft">
@@ -160,6 +174,9 @@ export default async function ProductsPage({ searchParams }: PageProps<"/product
                     </div>
                     <StockLevel quantity={p.quantity_on_hand} threshold={p.low_stock_threshold} t={t} locale={locale} />
                   </Link>
+                  <div className="px-2">
+                    <RowActions productId={p.id} archived={Boolean(p.archived_at)} t={t} />
+                  </div>
                 </li>
               ))}
             </ul>
@@ -174,5 +191,18 @@ export default async function ProductsPage({ searchParams }: PageProps<"/product
         />
       </Card>
     </>
+  );
+}
+
+/** Edit (opens the product's edit form) and delete, both guarded by the PIN. */
+function RowActions({ productId, archived, t }: { productId: string; archived: boolean; t: Dictionary }) {
+  return (
+    <div className="flex items-center justify-end gap-1">
+      <ButtonLink href={`/products/${productId}#edit`} variant="ghost" size="sm">
+        <Pencil aria-hidden className="size-4" />
+        {t.common.edit}
+      </ButtonLink>
+      {!archived && <DeleteProductButton productId={productId} t={t} size="sm" />}
+    </div>
   );
 }

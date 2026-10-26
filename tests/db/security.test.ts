@@ -11,7 +11,9 @@ import {
   rpc,
   runAs,
   saveDraft,
+  setPin,
   stockOf,
+  TEST_PIN,
   type Caller,
 } from "./helpers";
 
@@ -25,6 +27,8 @@ let invoiceId: string;
 beforeAll(async () => {
   owner = await createUser();
   stranger = await createUser();
+  await setPin(owner);
+  await setPin(stranger);
   productId = await createProduct(owner, { sku: "SECRET-1", qty: 20 });
   await rpc(owner, "update_owner_settings", ["My shop", "", "", "", "", "ILS", 5, "ar", "INV-"]);
   invoiceId = await saveDraft(owner, [{ product_id: productId, quantity: 2, unit_price_minor: 100 }]);
@@ -46,6 +50,8 @@ describe("signed-out visitor (anon)", () => {
     await expectDbError(rpc(anon, "cancel_invoice", [invoiceId, null]), /permission denied/);
     await expectDbError(rpc(anon, "adjust_stock", [productId, "restock", 5, "x"]), /permission denied/);
     await expectDbError(rpc(anon, "get_dashboard_stats", []), /permission denied/);
+    await expectDbError(rpc(anon, "delete_product", [productId, TEST_PIN]), /permission denied/);
+    await expectDbError(rpc(anon, "set_manage_pin", [null, "1111"]), /permission denied/);
   });
 });
 
@@ -57,8 +63,9 @@ describe("unrelated signed-in user", () => {
 
   it("cannot change the owner's stock or invoices through operations", async () => {
     await expectDbError(rpc(stranger, "adjust_stock", [productId, "restock", 5, "x"]), "product_not_found");
-    await expectDbError(rpc(stranger, "update_product", [productId, "H", "Hacked", null, 1, null, 1]), "product_not_found");
-    await expectDbError(rpc(stranger, "set_product_archived", [productId, true]), "product_not_found");
+    await expectDbError(rpc(stranger, "update_product", [productId, "H", "Hacked", null, 1, null, 1, TEST_PIN]), "product_not_found");
+    await expectDbError(rpc(stranger, "set_product_archived", [productId, true, TEST_PIN]), "product_not_found");
+    await expectDbError(rpc(stranger, "delete_product", [productId, TEST_PIN]), "product_not_found");
     await expectDbError(rpc(stranger, "cancel_invoice", [invoiceId, null]), "invoice_not_found");
     await expectDbError(rpc(stranger, "issue_invoice", [invoiceId, 200]), "invoice_not_found");
     await expectDbError(rpc(stranger, "delete_draft_invoice", [invoiceId]), "invoice_not_found");

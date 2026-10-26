@@ -16,8 +16,10 @@ import {
   runAs,
   saveDraft,
   setCaller,
+  setPin,
   statusOf,
   stockOf,
+  TEST_PIN,
   type Caller,
 } from "./helpers";
 
@@ -25,6 +27,7 @@ let owner: Caller & { kind: "user" };
 
 beforeEach(async () => {
   owner = await createUser();
+  await setPin(owner);
 });
 
 afterAll(async () => {
@@ -82,7 +85,7 @@ describe("products", () => {
 
   it("update_product cannot change quantity", async () => {
     const id = await createProduct(owner, { sku: "P1", qty: 9, price: 500 });
-    await rpc(owner, "update_product", [id, "P1", "Renamed", null, 700, null, 2]);
+    await rpc(owner, "update_product", [id, "P1", "Renamed", null, 700, null, 2, TEST_PIN]);
     const { rows } = await pool.query("select name, unit_price_minor, quantity_on_hand from products where id=$1", [id]);
     expect(rows[0]).toMatchObject({ name: "Renamed", unit_price_minor: "700", quantity_on_hand: 9 });
   });
@@ -338,7 +341,7 @@ describe("history and money", () => {
     const a = await createProduct(owner, { sku: "P-1", name: "Old name", qty: 10, price: 1995 });
     const inv = await saveDraft(owner, [{ product_id: a, quantity: 1, unit_price_minor: 1995 }]);
     await issue(owner, inv);
-    await rpc(owner, "update_product", [a, "P-1-NEW", "New name", null, 2200, null, 5]);
+    await rpc(owner, "update_product", [a, "P-1-NEW", "New name", null, 2200, null, 5, TEST_PIN]);
     const rows = await runAs<{ sku: string; product_name: string; unit_price_minor: string; line_total_minor: string }>(
       owner,
       "select sku, product_name, unit_price_minor, line_total_minor from invoice_items where invoice_id=$1",
@@ -367,7 +370,7 @@ describe("history and money", () => {
     const a = await createProduct(owner, { qty: 10 });
     const inv = await saveDraft(owner, [{ product_id: a, quantity: 1, unit_price_minor: 100 }]);
     await issue(owner, inv);
-    await rpc(owner, "set_product_archived", [a, true]);
+    await rpc(owner, "set_product_archived", [a, true, TEST_PIN]);
     const items = await runAs(owner, "select * from invoice_items where invoice_id=$1", [inv]);
     expect(items).toHaveLength(1);
     // A hard delete is impossible even for the database owner while history exists.
@@ -380,7 +383,7 @@ describe("history and money", () => {
   it("cannot issue a draft whose product was archived after the draft was saved", async () => {
     const a = await createProduct(owner, { qty: 10 });
     const inv = await saveDraft(owner, [{ product_id: a, quantity: 1, unit_price_minor: 100 }]);
-    await rpc(owner, "set_product_archived", [a, true]);
+    await rpc(owner, "set_product_archived", [a, true, TEST_PIN]);
     await expectDbError(issue(owner, inv, 100), "product_archived");
     expect(await stockOf(a)).toBe(10);
   });

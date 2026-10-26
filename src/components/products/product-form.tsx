@@ -110,6 +110,23 @@ export function ProductForm({
         </Field>
       )}
 
+      {mode === "edit" && (
+        <Field label={t.products.pin} htmlFor="pin" hint={t.products.pinHint} error={err.pin}>
+          <Input
+            id="pin"
+            name="pin"
+            type="password"
+            dir="ltr"
+            inputMode="numeric"
+            autoComplete="off"
+            required
+            maxLength={12}
+            aria-invalid={Boolean(err.pin)}
+            className="sm:max-w-48"
+          />
+        </Field>
+      )}
+
       <div className="flex justify-end">
         <Button type="submit" disabled={pending}>
           {pending ? t.common.saving : mode === "create" ? t.products.add : t.common.save}

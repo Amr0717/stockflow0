@@ -130,3 +130,11 @@ export async function expectDbError(promise: Promise<unknown>, message: RegExp |
   }
   throw new Error(`Expected error ${message}, but the call succeeded`);
 }
+
+/** The management PIN the tests use (set with setPin). */
+export const TEST_PIN = "4321";
+
+/** Sets the caller's management PIN for the first time. */
+export async function setPin(caller: Caller, pin = TEST_PIN) {
+  await rpc(caller, "set_manage_pin", [null, pin]);
+}
